@@ -9,12 +9,14 @@ export class SftpService {
 
   // Make the function a method of the class
   public async uploadToSftp(
-    file: Express.Multer.File,
+    filePath: string,
+    fileName: string,
     onProgress: (fileName: string, transferred: number, total: number) => void // Add a file parameter to the callback
   ) {
+    console.log(`Uploading ${filePath} to sftp...`);
     // Define the local and remote paths for the file
-    const localPath = file.path;
-    const remotePath = path.join('/remote/path', file.originalname);
+    const localPath = filePath;
+    const remotePath = path.join('/remote/path', fileName);
 
     // Upload the file to the SFTP server using fastPut method
     await this.sftp.fastPut(localPath, remotePath, {
@@ -22,14 +24,12 @@ export class SftpService {
       concurrency: 64,
       chunkSize: 32768,
       // Set the step option to track the progress of the upload
-      step: (transferred, chunk, total) => {
-        console.log(
-          `Transferred: ${transferred} / ${total} for ${file.originalname}`
-        );
-        onProgress(file.originalname, transferred, total); // Pass the file parameter to the callback
+      step: (transferred, _chunk, total) => {
+        console.log(`Transferred: ${transferred} / ${total} for ${fileName}`);
+        onProgress(fileName, transferred, total); // Pass the file parameter to the callback
       },
     });
     // Do something after each file is uploaded
-    console.log(`Upload successful for ${file.originalname}`);
+    console.log(`Upload successful for ${fileName}`);
   }
 }

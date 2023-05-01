@@ -6,18 +6,25 @@ import express from 'express';
 import 'reflect-metadata';
 import Client from 'ssh2-sftp-client';
 import { Container } from 'typedi';
+import { errorLogger, errorResponder } from './middleware/errorHandling';
 import { ImageRouter } from './routes/imageRouter';
+import { UpscalerService } from './services/upscalerService';
 
 // Load environment variables from .env file
 dotenv.config();
 registerEventEmitter();
-const { sftp, sftpConfig } = registerSftpClient();
+const registerSftp = registerSftpClient();
 const app = express() as Application;
 app.use(cors());
 app.use(express.json());
 
 const imageRouter = Container.get(ImageRouter).router;
 app.use('/images', imageRouter);
+// Error-handling middleware function - should go last
+app.use(errorLogger);
+app.use(errorResponder);
+
+const upscalerService = Container.get(UpscalerService);
 
 const logError = (msg: string, err: any) =>
   console.error(msg, err.message ?? err);
@@ -26,12 +33,8 @@ const port = process.env.PORT || 3000;
 app.listen(port, async () => {
   console.log(`Server listening on port ${port}`);
   // Connect to the SFTP server after the app starts listening
-  try {
-    await sftp.connect(sftpConfig);
-    console.log('Connected to sftp');
-  } catch (err: unknown) {
-    logError('Failed to connect to sftp:', err);
-  }
+  await registerSftp();
+  await upscalerService.installDependencies();
 });
 
 function registerEventEmitter() {
@@ -86,5 +89,12 @@ function registerSftpClient() {
     }
   });
 
-  return { sftp, sftpConfig };
+  return async () => {
+    try {
+      await sftp.connect(sftpConfig);
+      console.log('Connected to sftp');
+    } catch (err: unknown) {
+      logError('Failed to connect to sftp:', err);
+    }
+  };
 }
