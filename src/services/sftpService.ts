@@ -1,4 +1,3 @@
-import * as path from 'path';
 import Client from 'ssh2-sftp-client';
 import { Service } from 'typedi';
 
@@ -11,12 +10,12 @@ export class SftpService {
   public async uploadToSftp(
     filePath: string,
     fileName: string,
-    onProgress: (fileName: string, transferred: number, total: number) => void // Add a file parameter to the callback
+    onProgress: (fileName: string, progress: number) => void // Add a file parameter to the callback
   ) {
     console.log(`Uploading ${filePath} to sftp...`);
     // Define the local and remote paths for the file
     const localPath = filePath;
-    const remotePath = path.join('/remote/path', fileName);
+    const remotePath = fileName;
 
     // Upload the file to the SFTP server using fastPut method
     await this.sftp.fastPut(localPath, remotePath, {
@@ -25,8 +24,13 @@ export class SftpService {
       chunkSize: 32768,
       // Set the step option to track the progress of the upload
       step: (transferred, _chunk, total) => {
-        console.log(`Transferred: ${transferred} / ${total} for ${fileName}`);
-        onProgress(fileName, transferred, total); // Pass the file parameter to the callback
+        const progress = transferred / total;
+        console.log(
+          `Transferred: ${transferred} / ${total} (${
+            progress * 100
+          }%) for ${fileName}`
+        );
+        onProgress(fileName, progress); // Pass the file parameter to the callback
       },
     });
     // Do something after each file is uploaded

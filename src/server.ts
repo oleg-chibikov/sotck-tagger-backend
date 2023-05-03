@@ -3,11 +3,13 @@ import dotenv from 'dotenv';
 import EventEmitter from 'events';
 import type { Application } from 'express';
 import express from 'express';
+import * as fs from 'fs';
 import 'reflect-metadata';
 import Client from 'ssh2-sftp-client';
 import { Container } from 'typedi';
 import { errorLogger, errorResponder } from './middleware/errorHandling';
 import { ImageRouter } from './routes/imageRouter';
+import { CaptioningService } from './services/captioningService';
 import { UpscalerService } from './services/upscalerService';
 
 // Load environment variables from .env file
@@ -18,13 +20,23 @@ const app = express() as Application;
 app.use(cors());
 app.use(express.json());
 
+function createFolderIfNotExists(folderPath: string) {
+  if (!fs.existsSync(folderPath)) {
+    fs.mkdirSync(folderPath, { recursive: true });
+  }
+}
+
 const imageRouter = Container.get(ImageRouter).router;
 app.use('/images', imageRouter);
 // Error-handling middleware function - should go last
 app.use(errorLogger);
 app.use(errorResponder);
 
+createFolderIfNotExists('uploads');
+createFolderIfNotExists('output');
+
 const upscalerService = Container.get(UpscalerService);
+const captioningService = Container.get(CaptioningService);
 
 const logError = (msg: string, err: any) =>
   console.error(msg, err.message ?? err);
@@ -35,6 +47,7 @@ app.listen(port, async () => {
   // Connect to the SFTP server after the app starts listening
   await registerSftp();
   await upscalerService.installDependencies();
+  await captioningService.installDependencies();
 });
 
 function registerEventEmitter() {

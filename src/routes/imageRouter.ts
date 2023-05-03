@@ -1,11 +1,10 @@
 import EventEmitter from 'events';
+import type { NextFunction, Request, Response } from 'express';
 import { Router } from 'express';
 import multer from 'multer';
 import { Service } from 'typedi';
 import { ImageController } from '../controllers/imageController';
-
-// use type declarations for express and multer
-import type { NextFunction, Request, Response } from 'express';
+import { generateRandomString } from '../services/helper';
 
 @Service()
 class ImageRouter {
@@ -14,8 +13,11 @@ class ImageRouter {
     destination: function (_req, _file, cb) {
       cb(null, 'uploads/');
     },
-    filename: function (req, file, cb) {
-      cb(null, file.originalname);
+    filename: function (_req, file, cb) {
+      const randomString = generateRandomString(16);
+      const originalName = file.originalname;
+      const newName = `${randomString}-${originalName}`;
+      cb(null, newName);
     },
   });
 
@@ -30,10 +32,24 @@ class ImageRouter {
   }
 
   private setRoutes(): void {
+    this.registerCaptionRoute();
     this.registerUploadRoute();
 
     // Add the /events route for sending SSE
     this.registerProgressSseRoute();
+  }
+
+  private registerCaptionRoute() {
+    this.router.post(
+      '/caption',
+      (req: Request, res: Response, next: NextFunction) => {
+        this.upload.array('images')(req, res, (err: unknown) => {
+          console.log(req.files?.length);
+          next(err);
+        });
+      },
+      this.imageController.getImageCaptions
+    );
   }
 
   private registerUploadRoute() {
@@ -41,6 +57,7 @@ class ImageRouter {
       '/upload',
       (req: Request, res: Response, next: NextFunction) => {
         this.upload.array('images')(req, res, (err: unknown) => {
+          console.log(req.files?.length);
           next(err);
         });
       },
@@ -51,7 +68,7 @@ class ImageRouter {
   private registerProgressSseRoute() {
     this.router.get(
       '/events',
-      (req: Request, res: Response, next: NextFunction) => {
+      (_req: Request, res: Response, next: NextFunction) => {
         try {
           // Set the headers for an event stream
           res.set({

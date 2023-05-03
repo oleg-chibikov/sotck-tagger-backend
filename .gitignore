@@ -18,3 +18,7 @@ web-build/
 
 /*.env
 /uploads/
+
+**/__pycache__/
+output/
+/src/captioning/annotations/
