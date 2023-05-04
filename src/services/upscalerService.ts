@@ -34,7 +34,7 @@ class UpscalerService {
       `python ${path.join(
         process.env.ESRGAN_PATH as string,
         'inference_realesrgan.py'
-      )} --input ${inputFilePath} --output ${outputDirectory} --model_path ${
+      )} --input "${inputFilePath}" --output "${outputDirectory}" --model_path ${
         process.env.ESRGAN_MODEL_FILE_PATH as string
       } --tile 256`,
     ]);

@@ -32,11 +32,11 @@ class CaptioningService {
     const output = await runCommands(
       [
         getActivateCondaCommand(),
-        `python ${this.getCaptioningDirectory(
+        `python "${this.getCaptioningDirectory(
           'run_search.py'
-        )} ${imagePath} ${this.getCaptioningDirectory(
+        )}" "${imagePath}" "${this.getCaptioningDirectory(
           annotationsPath
-        )} --batch_size ${batchSize} --num_samples ${numberOfAnnotations} --num_results ${numberOfResults}`,
+        )}" --batch_size ${batchSize} --num_samples ${numberOfAnnotations} --num_results ${numberOfResults}`,
       ],
       process.cwd()
     );

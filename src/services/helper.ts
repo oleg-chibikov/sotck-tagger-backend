@@ -3,11 +3,11 @@ import type { Request } from 'express';
 import path from 'path';
 
 const getActivateCondaCommand = (): string => {
-  return `${path.join(
+  return `"${path.join(
     process.env.MINICONDA_PATH as string,
     'condabin',
     'conda.bat'
-  )} activate ${process.env.MINICONDA_ENVIRONMENT as string}`;
+  )}" activate ${process.env.MINICONDA_ENVIRONMENT as string}`;
 };
 
 const runCommands = async (
@@ -17,11 +17,7 @@ const runCommands = async (
   return new Promise((resolve, reject) => {
     const commandString = commands.join(' && ');
     console.log(`Executing ${commandString}...`);
-    const childProcess = spawn(
-      'cmd.exe',
-      ['/c', commandString],
-      workingDir ? { cwd: workingDir } : undefined
-    );
+    const childProcess = spawn(commandString, { shell: true, cwd: workingDir });
 
     let output = '';
     let error = '';
